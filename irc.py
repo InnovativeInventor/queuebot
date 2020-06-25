@@ -125,7 +125,7 @@ class IRC:
         if command[1] == "help":
             self.send(
                 "PRIVMSG",
-                "{user}: For IRC commands can be found at -  "
+                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot"
                 "NotImplemented".format(**locals()),
                 channel,
             )
