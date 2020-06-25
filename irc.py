@@ -128,8 +128,7 @@ class IRC:
         if command[1] == "help":
             self.send(
                 "PRIVMSG",
-                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot"
-                "NotImplemented".format(**locals()),
+                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to halt if things get out of hand.",
                 channel,
             )
             logger.Logger.log_info("Gave help")

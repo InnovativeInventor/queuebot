@@ -38,6 +38,8 @@ class QueueBot:
                 return cmd.format(
                     url=item
                 )
+            logger.Logger.log_info("Queue is empty")
+        logger.Logger.log_info("Buffer is full")
 
     def check_queue(self, command: list):
         """
@@ -106,7 +108,7 @@ class QueueBot:
         for count, each_line in enumerate(r.content.decode().split()):
             if validators.url(each_line.rstrip()):
                 self.queue.put((each_line.rstrip(), cmd))
-        return str(count) + "items added to queue."
+        return str(count) + " items added to queue."
 
     def nothing_pending(self) -> bool:
         """
