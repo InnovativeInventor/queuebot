@@ -5,6 +5,7 @@
 import socket
 import datetime
 import re
+import sys
 import logger
 
 import settings
@@ -67,45 +68,50 @@ class IRC:
             )
 
     def poll(self):
-        while True:
-            if self.state:
-                msg = self.bot.poll()
-                if msg:
-                    self.send(string=msg, channel=settings.irc_channel_bot)
+        try:
+            while True:
+                if self.state:
+                    msg = self.bot.poll()
+                    if msg:
+                        self.send(string=msg, channel=settings.irc_channel_bot)
 
-            message = self.server.recv(4096).decode("utf-8")
-            self.messages_received.append(message)
-            for line in message.splitlines():
-                logger.Logger.log_info("IRC - {line}".format(**locals()))
-                if len(line.split()) > 4:
-                    command = line.split()[3:]
-                    user = line.split("!")[0].replace(":", "")
-                    msg_type = line.split()[1]
-                    channel = line.split()[2]
+                message = self.server.recv(4096).decode("utf-8")
+                self.messages_received.append(message)
+                for line in message.splitlines():
+                    logger.Logger.log_info("IRC - {line}".format(**locals()))
+                    if len(line.split()) > 4:
+                        command = line.split()[3:]
+                        user = line.split("!")[0].replace(":", "")
+                        msg_type = line.split()[1]
+                        channel = line.split()[2]
 
-                    if (
-                        self.check_admin(user)
-                        and command[0].replace(":", "") == settings.irc_nick
-                    ):
-                        self.commands_received.append(
-                            {"command": command, "user": user, "channel": channel}
-                        )
-                        self.command(command, user, channel)
-                        logger.Logger.log_info(
-                            "COMMAND - Received in channel {channel} - {command}".format(
-                                channel=channel, command=" ".join(command)
+                        if (
+                            self.check_admin(user)
+                            and command[0].replace(":", "") == settings.irc_nick
+                        ):
+                            self.commands_received.append(
+                                {"command": command, "user": user, "channel": channel}
                             )
-                        )
+                            self.command(command, user, channel)
+                            logger.Logger.log_info(
+                                "COMMAND - Received in channel {channel} - {command}".format(
+                                    channel=channel, command=" ".join(command)
+                                )
+                            )
 
-                        # Command poll
-                        msg = self.bot.poll(command)
-                        if msg:
-                            self.send(string=msg, channel=settings.irc_channel_bot)
+                            # Command poll
+                            msg = self.bot.poll(command)
+                            if msg:
+                                self.send(string=msg, channel=settings.irc_channel_bot)
 
-            if self.state:
-                msg = self.bot.poll()
-                if msg:
-                    self.send(string=msg, channel=settings.irc_channel_bot)
+                if self.state:
+                    msg = self.bot.poll()
+                    if msg:
+                        self.send(string=msg, channel=settings.irc_channel_bot)
+        except KeyboardInterrupt:
+            logger.Logger.log_info("Caught KeyboardInterrupt. Closing connection")
+            self.send(string="queuebot is shutting down due to a KeyboardInterrupt. Not a crash!", channel=settings.irc_channel_bot)
+            sys.exit()
 
     def check_admin(self, user):
         logger.Logger.log_info("User authenticated " + str(user))
@@ -142,7 +148,14 @@ class IRC:
             logger.Logger.log_info("Gave version")
         elif command[1] == "start":
             self.state = True
-            logger.Logger.log_info("Server started")
+            logger.Logger.log_info("Server started.")
+            self.send(
+                "PRIVMSG",
+                "{user}: Server started.".format(
+                    user=user
+                ),
+                channel,
+            )
 
 
 if __name__ == "__main__":

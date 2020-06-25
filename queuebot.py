@@ -4,6 +4,7 @@ import logger
 import pickle
 import queue
 import requests
+import time
 
 
 class QueueBot:
@@ -12,6 +13,8 @@ class QueueBot:
 
         self.buffer = []
         self.queue = queue.Queue()
+        self.last_checked = 0
+        self.current_state = True
 
         # self.sqs = boto3.client("sqs")
         # self.queue_uri = self.sqs.get_queue_url(QueueName="queuebot.fifo").get(
@@ -23,15 +26,17 @@ class QueueBot:
         Fills queue if it is not full
         """
         if len(self.buffer) < self.size:
-            item = self.next()
+            response = self.next()
 
-            if item:
+            if response:
+                item, cmd = response
+
                 self.buffer.append(item)
 
                 logger.Logger.log_info("Filling up queue " + item)
 
-                return '!ao < {item} --explain "For queuebot - deduplicated automated twitter job"'.format(
-                    item=item
+                return cmd.format(
+                    url=item
                 )
 
     def check_queue(self, command: list):
@@ -92,15 +97,37 @@ class QueueBot:
         self.buffer.remove(item)
         # self.sqs.delete_message(QueueUrl=self.queue_uri, ReceiptHandle=receipt)
 
-    def add(self, uri: str):
+    def add(self, uri: str, cmd : str = '!ao < {url} --explain "For queuebot - deduplicated automated twitter job"'):
         """
         Adds stuff to the queue
         """
         logger.Logger.log_info("Added jobs at " + uri)
         r = requests.get(uri)
-        for each_line in r.content.decode().split():
+        for count, each_line in enumerate(r.content.decode().split()):
             if validators.url(each_line.rstrip()):
-                self.queue.put(each_line.rstrip())
+                self.queue.put((each_line.rstrip(), cmd))
+        return str(count) + "items added to queue."
+
+    def nothing_pending(self) -> bool:
+        """
+        Returns false if pending, returns true if nothing pending
+        Caches every 120 sec
+        """
+        if self.last_checked + 120 < int(time.time()):
+            logger.Logger.log_info("Checking if anything is pending")
+            r = requests.get("http://archivebot.com/pending")
+            for each_line in r.content.decode().split():
+                if "archivebot" in each_line.rstrip():
+                    logger.Logger.log_info("Something in archivebot is pending")
+                    self.current_state = False
+                    return False
+            logger.Logger.log_info("Nothing pending")
+            self.current_state = True
+            return True
+        else:
+            logger.Logger.log_info("Fetching from function cache " + str(self.current_state))
+            return self.current_state
+
 
     def poll(self, command=[]) -> str:
         """
@@ -108,9 +135,14 @@ class QueueBot:
         """
         if command:
             if command[1] == "add":
-                self.add(command[2].rstrip())
+                if len(command) == 4:
+                    logger.Logger.log_info("Custom command detected " + command[3].rstrip())
+                    return self.add(command[2].rstrip(), command[3].rstrip())
+                else:
+                    return self.add(command[2].rstrip())
             else:
-                self.check_queue(command)
+                return self.check_queue(command)
         else:
-            return self.fill_queue()
+            if self.nothing_pending():
+                return self.fill_queue()
         return ""
