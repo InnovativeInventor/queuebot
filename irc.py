@@ -104,6 +104,9 @@ class IRC:
                             if msg:
                                 self.send(string=msg, channel=settings.irc_channel_bot)
 
+                        elif command[1] == "stop":
+                            self.command(command, user, channel)
+
                 if self.state:
                     msg = self.bot.poll()
                     if msg:
