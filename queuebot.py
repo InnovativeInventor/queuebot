@@ -97,7 +97,7 @@ class QueueBot:
         self.buffer.remove(item)
         # self.sqs.delete_message(QueueUrl=self.queue_uri, ReceiptHandle=receipt)
 
-    def add(self, uri: str, cmd : str = '!ao < {url} --explain "For queuebot - deduplicated automated twitter job"'):
+    def add(self, uri: str, cmd : str = '!ao < {url} --explain "For queuebot - deduplicated automated twitter job started by maxfan8"'):
         """
         Adds stuff to the queue
         """
