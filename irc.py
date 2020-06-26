@@ -43,7 +43,14 @@ class IRC(threading.Thread):
     def pinger(self):
         while True:
             self.logger.log_info("ping")
-            time.sleep(60)
+            time.sleep(30)
+
+            if self.state:
+                msg = self.bot.poll()
+                if msg:
+                    self.send(string=msg, channel=settings.irc_channel_bot)
+
+            time.sleep(30)
             self.send("PING", ":")
 
             if self.state:
