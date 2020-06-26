@@ -196,7 +196,6 @@ class IRC(threading.Thread):
             )
             logger.Logger.log_info("Gave version")
         elif command[1] == "start":
-            self.state = True
             logger.Logger.log_info("Server started.")
             self.send(
                 "PRIVMSG",
@@ -206,6 +205,7 @@ class IRC(threading.Thread):
                 channel,
             )
             msg = self.bot.poll(restore=True)
+            self.state = True
             if msg:
                 self.send(string=msg, channel=settings.irc_channel_bot)
 
