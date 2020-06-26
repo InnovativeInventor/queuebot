@@ -1,4 +1,3 @@
-import boto3
 import validators
 import logger
 
