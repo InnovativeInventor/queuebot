@@ -1,8 +1,9 @@
-# import boto3
+import boto3
 import validators
 import logger
-import pickle
-import queue
+
+# import pickle
+# import queue
 import requests
 import time
 
@@ -12,16 +13,12 @@ class QueueBot:
         self.size = queue_size
 
         self.buffer = []
-        self.queue = queue.Queue()
+        self.queue = []
         self.last_checked = 0
+        self.last_update = 0  # same as last_checked but for dequeueing
         self.current_state = True
 
-        # self.sqs = boto3.client("sqs")
-        # self.queue_uri = self.sqs.get_queue_url(QueueName="queuebot.fifo").get(
-        # "QueueUrl"
-        # )
-
-    def fill_queue(self):
+    def fill_buffer(self):
         """
         Fills queue if it is not full
         """
@@ -33,18 +30,25 @@ class QueueBot:
 
                 self.buffer.append(item)
 
-                logger.Logger.log_info("Filling up queue " + item)
+                logger.Logger.log_info("Filling up buffer " + item)
 
-                return cmd.format(
-                    url=item
-                )
+                return cmd.format(url=item)
             logger.Logger.log_info("Queue is empty")
-        logger.Logger.log_info("Buffer is full")
+        else:
+            logger.Logger.log_info("Buffer is full")
 
     def check_queue(self, command: list):
         """
-        Checks to see if command can pop from queue
+        Checks to see if command can be removed from buffer
         """
+
+        # if "Queued" in command:
+        # for count, each_item in enumerate(self.buffer):
+        # logger.Logger.log_info("Queued job detected " + str(each_item))
+        # if each_item in command:
+        # logger.Logger.log_info("Removed from queue " + each_item)
+        # self.queued(each_item)
+
         if "finished" in command:
             for count, each_item in enumerate(self.buffer):
                 logger.Logger.log_info("Finished job detected " + str(each_item))
@@ -52,19 +56,36 @@ class QueueBot:
                     logger.Logger.log_info("Completed job " + each_item)
                     self.finished(each_item)
 
-        elif "Queued" in command:
+        if self.last_update + 120 < int(time.time()):
+            time.sleep(1)
+            logger.Logger.log_info("Checking if anything has finished")
+            r = requests.get(
+                "http://dashboard.at.ninjawedding.org/logs/recent",
+                params={"Accept": "application/json"},
+            )
+            urls = []
+            for each_job in r.json():
+                url = each_job.get("job_data").get("url").rstrip()
+                if not validators.url(url):
+                    logger.Logger.log_info("Invalid URL detected " + url)
+                else:
+                    urls.append(url)
+            logger.Logger.log_info(urls)
+
             for count, each_item in enumerate(self.buffer):
-                logger.Logger.log_info("Queued job detected " + str(each_item))
-                if each_item in command:
-                    logger.Logger.log_info("Removed from queue " + each_item)
-                    self.queued(each_item)
+                if not each_item in urls:
+                    logger.Logger.log_info(
+                        "Completed job (detected through omission) " + each_item
+                    )
+                    self.finished(each_item)
+            self.last_checked = int(time.time())
 
     def next(self, size=2):
         """
         Returns a list of the next urls and receipts
         """
-        if not self.queue.empty():
-            return self.queue.get(timeout=5)
+        if len(self.queue) > 0:
+            return self.queue.pop()
 
         # responses = self.sqs.receive_message(
         # QueueUrl=self.queue_uri,
@@ -86,11 +107,11 @@ class QueueBot:
         # else:
         # logger.Logger.log_info("Queue is empty!")
 
-    def queued(self, item: str):
-        """
-        Removes from queue. Not completely done.
-        """
-        self.queue.task_done()
+    # def queued(self, item: str):
+    # """
+    # Removes from queue. Not completely done.
+    # """
+    # self.queue.task_done()
 
     def finished(self, item: str):
         """
@@ -99,7 +120,11 @@ class QueueBot:
         self.buffer.remove(item)
         # self.sqs.delete_message(QueueUrl=self.queue_uri, ReceiptHandle=receipt)
 
-    def add(self, uri: str, cmd : str = '!ao < {url} --explain "For queuebot - deduplicated automated twitter job started by maxfan8"'):
+    def add(
+        self,
+        uri: str,
+        cmd: str = '!ao < {url} --explain "For queuebot - deduplicated automated twitter job started by maxfan8"',
+    ):
         """
         Adds stuff to the queue
         """
@@ -107,7 +132,7 @@ class QueueBot:
         r = requests.get(uri)
         for count, each_line in enumerate(r.content.decode().split()):
             if validators.url(each_line.rstrip()):
-                self.queue.put((each_line.rstrip(), cmd))
+                self.queue.append((each_line.rstrip(), cmd))
         return str(count) + " items added to queue."
 
     def nothing_pending(self) -> bool:
@@ -125,11 +150,13 @@ class QueueBot:
                     return False
             logger.Logger.log_info("Nothing pending")
             self.current_state = True
+            self.last_checked = int(time.time())
             return True
         else:
-            logger.Logger.log_info("Fetching from function cache " + str(self.current_state))
+            logger.Logger.log_info(
+                "Fetching from function cache " + str(self.current_state)
+            )
             return self.current_state
-
 
     def poll(self, command=[]) -> str:
         """
@@ -138,7 +165,9 @@ class QueueBot:
         if command:
             if command[1] == "add":
                 if len(command) == 4:
-                    logger.Logger.log_info("Custom command detected " + command[3].rstrip())
+                    logger.Logger.log_info(
+                        "Custom command detected " + command[3].rstrip()
+                    )
                     return self.add(command[2].rstrip(), command[3].rstrip())
                 else:
                     return self.add(command[2].rstrip())
@@ -146,5 +175,5 @@ class QueueBot:
                 return self.check_queue(command)
         else:
             if self.nothing_pending():
-                return self.fill_queue()
+                return self.fill_buffer()
         return ""

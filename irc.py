@@ -6,14 +6,17 @@ import socket
 import datetime
 import re
 import sys
+import time
 import logger
 
 import settings
 import queuebot
+import threading
 
 
-class IRC:
+class IRC(threading.Thread):
     def __init__(self, bot=queuebot.QueueBot):
+        threading.Thread.__init__(self)
         self.channel_bot = settings.irc_channel_bot
         self.nick = settings.irc_nick
         self.server_name = settings.irc_server_name
@@ -25,8 +28,23 @@ class IRC:
         self.commands_received = []
         self.commands_sent = []
 
+        self.logger = logger.Logger
+
         self.state = False
+
+        self.start_pinger()
         self.bot = bot()
+
+    def start_pinger(self):
+        self.pinger = threading.Thread(target=self.pinger)
+        self.pinger.daemon = True
+        self.pinger.start()
+
+    def pinger(self):
+        while True:
+            self.logger.log_info("ping")
+            time.sleep(600)
+            self.send("PING", ":")
 
     def run(self):
         self.connect()
@@ -113,7 +131,10 @@ class IRC:
                         self.send(string=msg, channel=settings.irc_channel_bot)
         except KeyboardInterrupt:
             logger.Logger.log_info("Caught KeyboardInterrupt. Closing connection")
-            self.send(string="queuebot is shutting down due to a KeyboardInterrupt. Not a crash!", channel=settings.irc_channel_bot)
+            self.send(
+                string="queuebot is shutting down due to a KeyboardInterrupt. Not a crash!",
+                channel=settings.irc_channel_bot,
+            )
             sys.exit()
 
     def check_admin(self, user):
@@ -152,11 +173,7 @@ class IRC:
             self.state = True
             logger.Logger.log_info("Server started.")
             self.send(
-                "PRIVMSG",
-                "{user}: Server started.".format(
-                    user=user
-                ),
-                channel,
+                "PRIVMSG", "{user}: Server started.".format(user=user), channel,
             )
 
 
