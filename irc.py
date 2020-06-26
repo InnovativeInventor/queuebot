@@ -43,7 +43,7 @@ class IRC(threading.Thread):
     def pinger(self):
         while True:
             self.logger.log_info("ping")
-            time.sleep(600)
+            time.sleep(60)
             self.send("PING", ":")
 
             if self.state:
