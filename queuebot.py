@@ -56,7 +56,7 @@ class QueueBot:
                     logger.Logger.log_info("Completed job " + each_item)
                     self.finished(each_item)
 
-        if self.last_update + 120 < int(time.time()):
+        if self.last_update + 60 < int(time.time()):
             time.sleep(1)
             logger.Logger.log_info("Checking if anything has finished")
             r = requests.get(
@@ -78,7 +78,7 @@ class QueueBot:
                         "Completed job (detected through omission) " + each_item
                     )
                     self.finished(each_item)
-            self.last_checked = int(time.time())
+            self.last_update = int(time.time())
 
     def next(self, size=2):
         """
@@ -174,6 +174,7 @@ class QueueBot:
             else:
                 return self.check_queue(command)
         else:
+            self.check_queue(command)
             if self.nothing_pending():
                 return self.fill_buffer()
         return ""

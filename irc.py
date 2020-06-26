@@ -46,6 +46,11 @@ class IRC(threading.Thread):
             time.sleep(600)
             self.send("PING", ":")
 
+            if self.state:
+                msg = self.bot.poll()
+                if msg:
+                    self.send(string=msg, channel=settings.irc_channel_bot)
+
     def run(self):
         self.connect()
         self.poll()
