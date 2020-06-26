@@ -86,9 +86,9 @@ class QueueBot:
                         self.finished(each_item)
             self.last_update = int(time.time())
 
-    def next(self, size=2):
+    def next(self):
         """
-        Returns a list of the next urls and receipts
+        Returns a list of the next url
         """
         if len(self.queue) > 0:
             return self.queue.pop()
@@ -129,7 +129,7 @@ class QueueBot:
     def add(
         self,
         uri: str,
-        cmd: str = '!ao < {url} --explain "For queuebot - deduplicated automated twitter job started by maxfan8"',
+        cmd: str = '!ao < {url} --explain "For max.fan8 - deduplicated automated twitter job started queued with queuebot"',
     ):
         """
         Adds stuff to the queue
