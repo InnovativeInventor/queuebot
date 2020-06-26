@@ -148,9 +148,10 @@ class QueueBot:
         """
         if self.last_checked + 120 < int(time.time()):
             logger.Logger.log_info("Checking if anything is pending")
-            r = requests.get("http://archivebot.com/pending")
+            r = requests.get("http://arshboard.at.ninjawedding.org:4567/pending")
             for each_line in r.content.decode().split():
-                if "archivebot" in each_line.rstrip():
+                logger.Logger.log_info(each_line) # debug
+                if "pending-ao" in each_line.rstrip():
                     logger.Logger.log_info("Something in archivebot is pending")
                     self.current_state = False
                     return False
