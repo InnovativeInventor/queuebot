@@ -172,8 +172,9 @@ class IRC(threading.Thread):
         if command[1] == "help":
             self.send(
                 "PRIVMSG",
-                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to stop if things get out of hand.".format(
-                    user=user
+                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to stop if things get out of hand. Currently the state of the bot is {state}, where True means that I'm running.".format(
+                    user=user,
+                    state=self.state
                 ),
                 channel,
             )
