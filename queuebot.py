@@ -170,6 +170,8 @@ class QueueBot:
                     return self.add(command[2].rstrip(), command[3].rstrip())
                 else:
                     return self.add(command[2].rstrip())
+            elif command[1] == "status":
+                return str(len(self.queue) + len(self.buffer)) + " jobs left to go!"
             else:
                 return self.check_queue(command)
         else:
