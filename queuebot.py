@@ -1,7 +1,8 @@
 import validators
 import logger
+import os
 
-# import pickle
+import pickle
 # import queue
 import requests
 import time
@@ -63,20 +64,26 @@ class QueueBot:
                 params={"Accept": "application/json"},
             )
             urls = []
+            queuebot_jobs = 0
+
             for each_job in r.json():
                 url = each_job.get("job_data").get("url").rstrip()
+                if "queuebot" == each_job.get("job_data").get("started_by").strip():
+                    queuebot_jobs += 1
                 if not validators.url(url):
                     logger.Logger.log_info("Invalid URL detected " + url)
                 else:
                     urls.append(url)
+            
+            logger.Logger.log_info(str(queuebot_jobs) + " jobs running")
             logger.Logger.log_info(urls)
-
-            for count, each_item in enumerate(self.buffer):
-                if not each_item in urls:
-                    logger.Logger.log_info(
-                        "Completed job (detected through omission) " + each_item
-                    )
-                    self.finished(each_item)
+            if queuebot_jobs < self.size:
+                for count, each_item in enumerate(self.buffer):
+                    if not each_item in urls:
+                        logger.Logger.log_info(
+                            "Completed job (detected through omission) " + each_item
+                        )
+                        self.finished(each_item)
             self.last_update = int(time.time())
 
     def next(self, size=2):
@@ -157,10 +164,28 @@ class QueueBot:
             )
             return self.current_state
 
-    def poll(self, command=[]) -> str:
+    def save(self):
+        with open("state.pickle", "wb") as f:
+            logger.Logger.log_info("Saved queuebot state")
+            state = (self.buffer, self.queue)
+            pickle.dump(state, f)
+
+    def restore(self):
+        if os.path.exists("state.pickle"):
+            with open("state.pickle", "rb") as f:
+                logger.Logger.log_info("Restore queuebot state")
+                self.buffer, self.queue = pickle.load(f)
+                logger.Logger.log_info(str(len(self.buffer) + len(self.queue)))
+
+    def poll(self, command=[], restore=False) -> str:
         """
         Polling function
         """
+        if restore:
+            self.restore()
+        else:
+            self.save()
+
         if command:
             if command[1] == "add":
                 if len(command) == 4:

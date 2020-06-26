@@ -68,12 +68,15 @@ class IRC(threading.Thread):
         logger.Logger.log_info("Connecting to IRC server " + self.server_name)
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.connect((self.server_name, self.server_port))
+        time.sleep(0.5)
         self.send(
             "USER",
             "{nick} {nick} {nick} :I am a bot; "
             "https://github.com/InnovativeInventor/queuebot.".format(nick=self.nick),
         )
+        time.sleep(0.5)
         self.send("NICK", "{nick}".format(nick=self.nick))
+        time.sleep(0.5)
         self.send("JOIN", "{channel_bot}".format(channel_bot=self.channel_bot))
         #        self.send('PRIVMSG', 'Version {version}.'
         #                  .format(version=settings.version), self.channel_bot)
@@ -134,7 +137,7 @@ class IRC(threading.Thread):
                             if msg:
                                 self.send(string=msg, channel=settings.irc_channel_bot)
 
-                        elif command[1] == "stop":
+                        elif command[1] == "stop" or command[1] == "help":
                             self.command(command, user, channel)
 
                 if self.state:
@@ -151,7 +154,7 @@ class IRC(threading.Thread):
 
     def check_admin(self, user):
         logger.Logger.log_info("User authenticated " + str(user))
-        if str(user).rstrip() in ["maxfan8", "Major"]:
+        if str(user).rstrip() in ["maxfan8", "Major", "kiska", "Larsenv", "JAA", "Ryz", "jodizzle"]:
             return True
         else:
             return False
@@ -161,7 +164,7 @@ class IRC(threading.Thread):
         if command[1] == "help":
             self.send(
                 "PRIVMSG",
-                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to halt if things get out of hand.",
+                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to stop if things get out of hand.",
                 channel,
             )
             logger.Logger.log_info("Gave help")
@@ -170,7 +173,7 @@ class IRC(threading.Thread):
                 "EMERGENCY: {user} has requested I stop".format(**locals())
             )
             self.state = False
-            self.send("PRIVMSG", "{user}: Stopped.".format(**locals()), channel)
+            self.send("PRIVMSG", "{user}: Stopped queuebot.".format(**locals()), channel)
             logger.Logger.log_info("Stopped")
         elif command[1] == "version":
             self.send(
@@ -185,8 +188,11 @@ class IRC(threading.Thread):
             self.state = True
             logger.Logger.log_info("Server started.")
             self.send(
-                "PRIVMSG", "{user}: Server started.".format(user=user), channel,
+                "PRIVMSG", "{user}: queuebot started.".format(user=user), channel,
             )
+            msg = self.bot.poll(restore=True)
+            if msg:
+                self.send(string=msg, channel=settings.irc_channel_bot)
 
 
 if __name__ == "__main__":
