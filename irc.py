@@ -162,6 +162,7 @@ class IRC(threading.Thread):
             "JAA",
             "Ryz",
             "jodizzle",
+            "VoynichCr"
         ]:
             return True
         else:
