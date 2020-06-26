@@ -164,16 +164,16 @@ class IRC(threading.Thread):
         if command[1] == "help":
             self.send(
                 "PRIVMSG",
-                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to stop if things get out of hand.",
+                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to stop if things get out of hand.".format(user=user),
                 channel,
             )
             logger.Logger.log_info("Gave help")
         elif command[1] == "stop":
             logger.Logger.log_info(
-                "EMERGENCY: {user} has requested I stop".format(**locals())
+                "EMERGENCY: {user} has requested I stop".format(user=user)
             )
             self.state = False
-            self.send("PRIVMSG", "{user}: Stopped queuebot.".format(**locals()), channel)
+            self.send("PRIVMSG", "{user}: Stopped queuebot.".format(user=user), channel)
             logger.Logger.log_info("Stopped")
         elif command[1] == "version":
             self.send(
