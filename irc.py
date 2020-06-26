@@ -188,7 +188,7 @@ class IRC(threading.Thread):
             self.state = True
             logger.Logger.log_info("Server started.")
             self.send(
-                "PRIVMSG", "{user}: queuebot started.".format(user=user), channel,
+                "PRIVMSG", "{user}: queuebot started. Anything that was previously running should be restored.".format(user=user), channel,
             )
             msg = self.bot.poll(restore=True)
             if msg:
