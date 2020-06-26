@@ -3,6 +3,7 @@ import logger
 import os
 
 import pickle
+
 # import queue
 import requests
 import time
@@ -74,7 +75,7 @@ class QueueBot:
                     logger.Logger.log_info("Invalid URL detected " + url)
                 else:
                     urls.append(url)
-            
+
             logger.Logger.log_info(str(queuebot_jobs) + " jobs running")
             logger.Logger.log_info(urls)
             if queuebot_jobs < self.size:
@@ -148,9 +149,9 @@ class QueueBot:
         """
         if self.last_checked + 120 < int(time.time()):
             logger.Logger.log_info("Checking if anything is pending")
-            r = requests.get("http://arshboard.at.ninjawedding.org:4567/pending")
+            r = requests.get("http://dashboard.at.ninjawedding.org/pending")
             for each_line in r.content.decode().split():
-                logger.Logger.log_info(each_line) # debug
+                logger.Logger.log_info(each_line)  # debug
                 if "pending-ao" in each_line.rstrip():
                     logger.Logger.log_info("Something in archivebot is pending")
                     self.current_state = False
@@ -166,10 +167,11 @@ class QueueBot:
             return self.current_state
 
     def save(self):
-        with open("state.pickle", "wb") as f:
-            logger.Logger.log_info("Saved queuebot state")
-            state = (self.buffer, self.queue)
-            pickle.dump(state, f)
+        if self.last_checked + self.last_update != 0:  # don't want this to run at first
+            with open("state.pickle", "wb") as f:
+                logger.Logger.log_info("Saved queuebot state")
+                state = (self.buffer, self.queue)
+                pickle.dump(state, f)
 
     def restore(self):
         if os.path.exists("state.pickle"):
@@ -184,8 +186,6 @@ class QueueBot:
         """
         if restore:
             self.restore()
-        else:
-            self.save()
 
         if command:
             if command[1] == "add":

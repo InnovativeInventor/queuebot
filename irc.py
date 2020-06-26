@@ -154,7 +154,15 @@ class IRC(threading.Thread):
 
     def check_admin(self, user):
         logger.Logger.log_info("User authenticated " + str(user))
-        if str(user).rstrip() in ["maxfan8", "Major", "kiska", "Larsenv", "JAA", "Ryz", "jodizzle"]:
+        if str(user).rstrip() in [
+            "maxfan8",
+            "Major",
+            "kiska",
+            "Larsenv",
+            "JAA",
+            "Ryz",
+            "jodizzle",
+        ]:
             return True
         else:
             return False
@@ -164,7 +172,9 @@ class IRC(threading.Thread):
         if command[1] == "help":
             self.send(
                 "PRIVMSG",
-                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to stop if things get out of hand.".format(user=user),
+                "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to stop if things get out of hand.".format(
+                    user=user
+                ),
                 channel,
             )
             logger.Logger.log_info("Gave help")
@@ -188,7 +198,11 @@ class IRC(threading.Thread):
             self.state = True
             logger.Logger.log_info("Server started.")
             self.send(
-                "PRIVMSG", "{user}: queuebot started. Anything that was previously running should be restored.".format(user=user), channel,
+                "PRIVMSG",
+                "{user}: queuebot started. Anything that was previously running should be restored.".format(
+                    user=user
+                ),
+                channel,
             )
             msg = self.bot.poll(restore=True)
             if msg:
