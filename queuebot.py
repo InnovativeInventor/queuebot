@@ -177,7 +177,13 @@ class QueueBot:
         if os.path.exists("state.pickle"):
             with open("state.pickle", "rb") as f:
                 logger.Logger.log_info("Restore queuebot state")
-                self.buffer, self.queue = pickle.load(f)
+                buffer_list, queue_list = pickle.load(f)
+
+                if buffer_list:
+                    self.buffer = buffer_list
+                if queue_list:
+                    self.queue = queue_list
+
                 logger.Logger.log_info(str(len(self.buffer) + len(self.queue)))
 
     def poll(self, command=[], restore=False) -> str:
