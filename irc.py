@@ -137,7 +137,9 @@ class IRC(threading.Thread):
                             if msg:
                                 self.send(string=msg, channel=settings.irc_channel_bot)
 
-                        elif command[1] == "stop" or command[1] == "help":
+                        elif (command[1] == "stop" or command[1] == "help") and command[
+                            0
+                        ].replace(":", "") == settings.irc_nick:
                             self.command(command, user, channel)
 
                 if self.state:
@@ -162,7 +164,7 @@ class IRC(threading.Thread):
             "JAA",
             "Ryz",
             "jodizzle",
-            "VoynichCr"
+            "VoynichCr",
         ]:
             return True
         else:
@@ -174,8 +176,7 @@ class IRC(threading.Thread):
             self.send(
                 "PRIVMSG",
                 "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to stop if things get out of hand. Currently the state of the bot is {state}, where True means that I'm running.".format(
-                    user=user,
-                    state=self.state
+                    user=user, state=self.state
                 ),
                 channel,
             )
