@@ -152,7 +152,7 @@ class QueueBot:
             r = requests.get("http://dashboard.at.ninjawedding.org/pending")
             for each_line in r.content.decode().split():
                 logger.Logger.log_info(each_line)  # debug
-                if "pending-ao" in each_line.rstrip():
+                if "pending-ao" in each_line.rstrip() or each_line.rstrip() == "pending":
                     logger.Logger.log_info("Something in archivebot is pending")
                     self.current_state = False
                     return False
