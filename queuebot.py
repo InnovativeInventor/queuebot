@@ -19,24 +19,29 @@ class QueueBot:
         self.last_update = 0  # same as last_checked but for dequeueing
         self.current_state = True
 
+        self.state = False  # halt or not
+
     def fill_buffer(self):
         """
         Fills queue if it is not full
         """
-        if len(self.buffer) < self.size:
-            response = self.next()
+        if self.state:
+            if len(self.buffer) < self.size:
+                response = self.next()
 
-            if response:
-                item, cmd = response
+                if response:
+                    item, cmd = response
 
-                self.buffer.append(item)
+                    self.buffer.append(item)
 
-                logger.Logger.log_info("Filling up buffer " + item)
+                    logger.Logger.log_info("Filling up buffer " + item)
 
-                return cmd.format(url=item)
-            logger.Logger.log_info("Queue is empty")
+                    return cmd.format(url=item)
+                logger.Logger.log_info("Queue is empty")
+            else:
+                logger.Logger.log_info("Buffer is full")
         else:
-            logger.Logger.log_info("Buffer is full")
+            logger.Logger.log_info("Halted")
 
     def check_queue(self, command: list):
         """
@@ -87,12 +92,18 @@ class QueueBot:
                         self.finished(each_item)
             self.last_update = int(time.time())
 
+        if self.state:
+            self.save()
+
     def next(self):
         """
         Returns a list of the next url
         """
-        if len(self.queue) > 0:
-            return self.queue.pop()
+        if self.state:
+            if len(self.queue) > 0:
+                return self.queue.pop()
+        else:
+            logger.Logger.log_info("Halted")
 
         # responses = self.sqs.receive_message(
         # QueueUrl=self.queue_uri,
@@ -124,7 +135,10 @@ class QueueBot:
         """
         Removes from buffer, the pr
         """
-        self.buffer.remove(item)
+        if self.state:
+            self.buffer.remove(item)
+        else:
+            logger.Logger.log_info("Halted")
         # self.sqs.delete_message(QueueUrl=self.queue_uri, ReceiptHandle=receipt)
 
     def add(
@@ -152,7 +166,10 @@ class QueueBot:
             r = requests.get("http://dashboard.at.ninjawedding.org/pending")
             for each_line in r.content.decode().split():
                 logger.Logger.log_info(each_line)  # debug
-                if "pending-ao" in each_line.rstrip() or each_line.rstrip() == "pending":
+                if (
+                    "pending-ao" in each_line.rstrip()
+                    or each_line.rstrip() == "pending"
+                ):
                     logger.Logger.log_info("Something in archivebot is pending")
                     self.current_state = False
                     return False
@@ -167,47 +184,59 @@ class QueueBot:
             return self.current_state
 
     def save(self):
-        if self.last_checked + self.last_update != 0:  # don't want this to run at first
-            with open("state.pickle", "wb") as f:
-                logger.Logger.log_info("Saved queuebot state")
-                state = (self.buffer, self.queue)
-                pickle.dump(state, f)
+        if self.state:
+            if (
+                self.last_checked + self.last_update != 0
+            ):  # don't want this to run at first
+                with open("state.pickle", "wb") as f:
+                    logger.Logger.log_info("Saved queuebot state")
+                    state = (self.buffer, self.queue)
+                    pickle.dump(state, f)
+        else:
+            logger.Logger.log_info("Halted")
 
     def restore(self):
-        if os.path.exists("state.pickle"):
-            with open("state.pickle", "rb") as f:
-                logger.Logger.log_info("Restore queuebot state")
-                buffer_list, queue_list = pickle.load(f)
+        if self.state:
+            if os.path.exists("state.pickle"):
+                with open("state.pickle", "rb") as f:
+                    logger.Logger.log_info("Restore queuebot state")
+                    buffer_list, queue_list = pickle.load(f)
 
-                if buffer_list:
-                    self.buffer = buffer_list
-                if queue_list:
-                    self.queue = queue_list
+                    if buffer_list and len(self.buffer) < buffer_list:
+                        self.buffer = buffer_list
+                    if queue_list and len(self.queue) < queue_list:
+                        self.queue = queue_list
 
-                logger.Logger.log_info(str(len(self.buffer) + len(self.queue)))
+                    logger.Logger.log_info(str(len(self.buffer) + len(self.queue)))
+        else:
+            logger.Logger.log_info("Halted")
 
     def poll(self, command=[], restore=False) -> str:
         """
         Polling function
         """
-        if restore:
-            self.restore()
+        if self.state:
+            if restore:
+                self.restore()
 
-        if command:
-            if command[1] == "add":
-                if len(command) == 4:
-                    logger.Logger.log_info(
-                        "Custom command detected " + command[3].rstrip()
-                    )
-                    return self.add(command[2].rstrip(), command[3].rstrip())
+            if command:
+                if command[1] == "add":
+                    if len(command) == 4:
+                        logger.Logger.log_info(
+                            "Custom command detected " + command[3].rstrip()
+                        )
+                        return self.add(command[2].rstrip(), command[3].rstrip())
+                    else:
+                        return self.add(command[2].rstrip())
+                elif command[1] == "status":
+                    return str(len(self.queue) + len(self.buffer)) + " jobs left to go!"
                 else:
-                    return self.add(command[2].rstrip())
-            elif command[1] == "status":
-                return str(len(self.queue) + len(self.buffer)) + " jobs left to go!"
+                    return self.check_queue(command)
             else:
-                return self.check_queue(command)
+                self.check_queue(command)
+                if self.nothing_pending():
+                    return self.fill_buffer()
+            return ""
         else:
-            self.check_queue(command)
-            if self.nothing_pending():
-                return self.fill_buffer()
-        return ""
+            logger.Logger.log_info("Halted")
+            return ""

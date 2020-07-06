@@ -1,5 +1,5 @@
 # variables to be changed
-version = "0.0.1"
+version = "0.1.1"
 irc_channel_bot = "#test"
 irc_nick = "queuebot"
 irc_server_name = "irc.servercentral.net"

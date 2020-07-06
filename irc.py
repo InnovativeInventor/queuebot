@@ -133,9 +133,12 @@ class IRC(threading.Thread):
                             )
 
                             # Command poll
-                            msg = self.bot.poll(command)
-                            if msg:
-                                self.send(string=msg, channel=settings.irc_channel_bot)
+                            if self.state:
+                                msg = self.bot.poll(command)
+                                if msg:
+                                    self.send(
+                                        string=msg, channel=settings.irc_channel_bot
+                                    )
 
                         elif (command[1] == "stop" or command[1] == "help") and command[
                             0
@@ -185,6 +188,8 @@ class IRC(threading.Thread):
             logger.Logger.log_info(
                 "EMERGENCY: {user} has requested I stop".format(user=user)
             )
+            self.bot.save()
+            self.bot.state = False
             self.state = False
             self.send("PRIVMSG", "{user}: Stopped queuebot.".format(user=user), channel)
             logger.Logger.log_info("Stopped")
@@ -206,8 +211,9 @@ class IRC(threading.Thread):
                 ),
                 channel,
             )
-            msg = self.bot.poll(restore=True)
             self.state = True
+            self.bot.state = True
+            msg = self.bot.poll(restore=True)
             if msg:
                 self.send(string=msg, channel=settings.irc_channel_bot)
 
