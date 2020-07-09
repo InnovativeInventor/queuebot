@@ -202,9 +202,9 @@ class QueueBot:
                     logger.Logger.log_info("Restore queuebot state")
                     buffer_list, queue_list = pickle.load(f)
 
-                    if buffer_list and len(self.buffer) < buffer_list:
+                    if buffer_list and len(self.buffer) < len(buffer_list):
                         self.buffer = buffer_list
-                    if queue_list and len(self.queue) < queue_list:
+                    if queue_list and len(self.queue) < len(queue_list):
                         self.queue = queue_list
 
                     logger.Logger.log_info(str(len(self.buffer) + len(self.queue)))
