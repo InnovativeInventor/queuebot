@@ -10,7 +10,7 @@ import time
 
 
 class QueueBot:
-    def __init__(self, queue_size=3):
+    def __init__(self, queue_size=2):
         self.size = queue_size
 
         self.buffer = []
@@ -62,7 +62,7 @@ class QueueBot:
                     logger.Logger.log_info("Completed job " + each_item)
                     self.finished(each_item)
 
-        if self.last_update + 60 < int(time.time()):
+        if self.last_update + 30 < int(time.time()):
             time.sleep(1)
             logger.Logger.log_info("Checking if anything has finished")
             r = requests.get(
