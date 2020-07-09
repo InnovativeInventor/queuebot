@@ -10,7 +10,7 @@ import time
 
 
 class QueueBot:
-    def __init__(self, queue_size=2):
+    def __init__(self, queue_size=3):
         self.size = queue_size
 
         self.buffer = []
