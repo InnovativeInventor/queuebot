@@ -66,7 +66,7 @@ class QueueBot:
             time.sleep(1)
             logger.Logger.log_info("Checking if anything has finished")
             r = requests.get(
-                "http://dashboard.at.ninjawedding.org/logs/recent",
+                "http://dashboard.at.ninjawedding.org/logs/recent?count=1",
                 params={"Accept": "application/json"},
             )
             urls = []
@@ -144,9 +144,7 @@ class QueueBot:
         # self.sqs.delete_message(QueueUrl=self.queue_uri, ReceiptHandle=receipt)
 
     def add(
-        self,
-        uri: str,
-        cmd: str = '!ao < {url}',
+        self, uri: str, cmd: str = "!ao < {url}",
     ):
         """
         Adds stuff to the queue
@@ -213,6 +211,21 @@ class QueueBot:
         else:
             logger.Logger.log_info("Halted")
 
+    def change_slot(self, slot_num: int):
+        """
+        Changes self.size.
+        """
+        if slot_num.isdigit():
+            orig_size = self.size
+            self.size = int(slot_num)
+            self.last_checked = 0
+            self.last_update = 0
+            return "Changed slot size from {orig_size} to {new_size}. Note that the slot size is *roughly* the number of concurrent jobs running. If it's ever significantly out of sync, please let maxfan8 know.".format(
+                orig_size=orig_size, new_size=self.size
+            )
+        else:
+            return "TypeError: Please specify a real number"
+
     def poll(self, command=[], restore=False) -> str:
         """
         Polling function
@@ -232,6 +245,8 @@ class QueueBot:
                         return self.add(command[2].rstrip())
                 elif command[1] == "status":
                     return str(len(self.queue) + len(self.buffer)) + " jobs left to go!"
+                elif command[1] == "slots":
+                    return str(self.change_slot(command[2].rstrip()))
                 else:
                     return self.check_queue(command)
             else:
