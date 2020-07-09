@@ -174,7 +174,7 @@ class IRC(threading.Thread):
             self.send(
                 "PRIVMSG",
                 "{user}: Source code is at https://github.com/InnovativeInventor/queuebot. Anybody can tell me to stop if things get out of hand. Currently the state of the bot is {state}, where True means that I'm running. The number of slots that I am allotted is {slot_size}.".format(
-                    user=user, state=self.state, slot_size = self.bot.size
+                    user=user, state=self.state, slot_size=self.bot.size
                 ),
                 channel,
             )

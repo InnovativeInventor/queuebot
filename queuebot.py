@@ -244,7 +244,11 @@ class QueueBot:
                     else:
                         return self.add(command[2].rstrip())
                 elif command[1] == "status":
-                    return str(len(self.queue) + len(self.buffer)) + " jobs left to go!"
+                    return str(
+                        len(self.queue) + len(self.buffer)
+                    ) + " jobs left to go! {slot_size} slots allocated.".format(
+                        slot_size=self.size
+                    )
                 elif command[1] == "slots":
                     return str(self.change_slot(command[2].rstrip()))
                 else:
