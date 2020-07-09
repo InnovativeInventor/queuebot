@@ -144,7 +144,7 @@ class QueueBot:
     def add(
         self,
         uri: str,
-        cmd: str = '!ao < {url} --explain "For maxfan8 - deduplicated automated twitter job started queued with queuebot"',
+        cmd: str = '!ao < {url}',
     ):
         """
         Adds stuff to the queue
