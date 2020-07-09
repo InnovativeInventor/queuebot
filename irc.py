@@ -166,6 +166,9 @@ class IRC(threading.Thread):
             "Larsenv",
             "JAA",
             "Ryz",
+            "Kaz",
+            "SketchCow",
+            "arkiver",
             "jodizzle",
             "VoynichCr",
         ]:
