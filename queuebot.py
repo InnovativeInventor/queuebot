@@ -10,7 +10,7 @@ import time
 
 
 class QueueBot:
-    def __init__(self, queue_size=2):
+    def __init__(self, queue_size=3):
         self.size = queue_size
 
         self.buffer = []
@@ -78,8 +78,10 @@ class QueueBot:
                     queuebot_jobs += 1
                 if not validators.url(url):
                     logger.Logger.log_info("Invalid URL detected " + url)
-                else:
+                elif not each_job.get("job_data").get("finished_at"):
                     urls.append(url)
+                else:
+                    logger.Logger.log_info("URL is finished " + url)
 
             logger.Logger.log_info(str(queuebot_jobs) + " jobs running")
             logger.Logger.log_info(urls)
