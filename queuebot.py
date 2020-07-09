@@ -85,13 +85,13 @@ class QueueBot:
 
             logger.Logger.log_info(str(queuebot_jobs) + " jobs running")
             logger.Logger.log_info(urls)
-            if queuebot_jobs < self.size:
-                for count, each_item in enumerate(self.buffer):
-                    if not each_item in urls:
-                        logger.Logger.log_info(
-                            "Completed job (detected through omission) " + each_item
-                        )
-                        self.finished(each_item)
+            # if queuebot_jobs < self.size:
+            for count, each_item in enumerate(self.buffer):
+                if not each_item in urls:
+                    logger.Logger.log_info(
+                        "Completed job (detected through omission) " + each_item
+                    )
+                    self.finished(each_item)
             self.last_update = int(time.time())
 
         if self.state:
