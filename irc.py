@@ -162,6 +162,7 @@ class IRC(threading.Thread):
             "Larsenv",
             "JAA",
             "Ryz",
+            "katocala",
             "Kaz",
             "SketchCow",
             "arkiver",

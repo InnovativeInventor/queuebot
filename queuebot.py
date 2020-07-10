@@ -251,8 +251,9 @@ class QueueBot:
             return "Automatic scaling up has been turned off (by setting min_cap to 0)."
         elif len(command) == 4:
             if command[2].rstrip().isdigit() and command[3].rstrip().isdigit():
-                min_cap = int(command[2].rstrip().isdigit())
-                max_cap = int(command[3].rstrip().isdigit())
+                logger.Logger.log_info("Changing capacity " + command[2] + " " + command[3])
+                min_cap = int(command[2].rstrip())
+                max_cap = int(command[3].rstrip())
                 if min_cap < max_cap:
                     self.min_cap = min_cap
                     self.max_cap = max_cap
