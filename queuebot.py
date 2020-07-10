@@ -72,7 +72,7 @@ class QueueBot:
                     self.finished(each_item)
 
         if self.last_update + 25 < int(time.time()):
-            time.sleep(5)
+            time.sleep(2)
             logger.Logger.log_info("Checking if anything has finished")
             r = requests.get(
                 "http://dashboard.at.ninjawedding.org/logs/recent?count=1",
