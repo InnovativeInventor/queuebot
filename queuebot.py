@@ -1,12 +1,14 @@
 import validators
 import logger
 import os
+import mongodb_dataset as dataset
 
 import pickle
 
 # import queue
 import requests
 import time
+import settings
 
 
 class QueueBot:
@@ -20,6 +22,10 @@ class QueueBot:
         self.current_state = True
 
         self.state = False  # halt or not
+        if settings.db_name:
+            self.log = dataset.connect(uri=settings.db_uri, db_name=settings.db_name)["queuebot"]
+        else:
+            self.log = dataset.connect(uri=settings.db_uri)["queuebot"]
 
     def fill_buffer(self):
         """
@@ -138,6 +144,7 @@ class QueueBot:
         Removes from buffer, the pr
         """
         if self.state:
+            self.log.insert({"item": item, "finished": True})
             self.buffer.remove(item)
         else:
             logger.Logger.log_info("Halted")
@@ -256,7 +263,10 @@ class QueueBot:
             else:
                 self.check_queue(command)
                 if self.nothing_pending():
-                    return self.fill_buffer()
+                    queued_item = self.fill_buffer()
+                    if queued_item:
+                        self.log.insert({"item": queued_item.replace("!ao <", "").rstrip(), "finished": False})
+                    return queued_item
             return ""
         else:
             logger.Logger.log_info("Halted")

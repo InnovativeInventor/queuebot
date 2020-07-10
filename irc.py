@@ -2,16 +2,17 @@
 # credit: modified from socialbot's irc.py
 # https://github.com/Ghostofapacket/socialscrape-bot/blob/master/irc.py
 
-import socket
 import datetime
 import re
+import socket
 import sys
-import time
-import logger
-
-import settings
-import queuebot
 import threading
+import time
+
+import logger
+import mongodb_dataset as dataset
+import queuebot
+import settings
 
 
 class IRC(threading.Thread):
@@ -23,17 +24,20 @@ class IRC(threading.Thread):
         self.server_port = settings.irc_server_port
         self.server = None
         self.scrapesite = None
-        self.messages_received = []
-        self.messages_sent = []
-        self.commands_received = []
-        self.commands_sent = []
-
         self.logger = logger.Logger
 
         self.state = False
 
         self.start_pinger()
         self.bot = bot()
+
+
+        if settings.db_name:
+            self.messages = dataset.connect(uri=settings.db_uri, db_name=settings.db_name)["messages"]
+            self.commands = dataset.connect(uri=settings.db_uri, db_name=settings.db_name)["commands"]
+        else:
+            self.messages = dataset.connect(uri=settings.db_uri)["messages"]
+            self.commands = dataset.connect(uri=settings.db_uri)["commands"]
 
     def start_pinger(self):
         self.pinger = threading.Thread(target=self.pinger)
@@ -81,7 +85,7 @@ class IRC(threading.Thread):
             message = "{command} {channel}{string}".format(**locals())
             try:
                 logger.Logger.log_info("IRC - {message}".format(**locals()))
-                self.messages_sent.append(message)
+                self.messages.insert({"msg":message, "sent": True})
                 self.server.send("{message}\n".format(**locals()).encode("utf-8"))
             except Exception as exception:
                 logger.Logger.log_info("{exception}".format(**locals()), "WARNING")
@@ -101,7 +105,7 @@ class IRC(threading.Thread):
                         self.send(string=msg, channel=settings.irc_channel_bot)
 
                 message = self.server.recv(4096).decode("utf-8")
-                self.messages_received.append(message)
+                self.messages.insert({"msg": message, "sent": False})
                 for line in message.splitlines():
                     logger.Logger.log_info("IRC - {line}".format(**locals()))
                     if len(line.split()) > 4:
@@ -114,7 +118,7 @@ class IRC(threading.Thread):
                             self.check_admin(user)
                             and command[0].replace(":", "") == settings.irc_nick
                         ):
-                            self.commands_received.append(
+                            self.commands.insert(
                                 {"command": command, "user": user, "channel": channel}
                             )
                             self.command(command, user, channel)
