@@ -250,15 +250,14 @@ class QueueBot:
             self.min_cap = 0
             return "Automatic scaling up has been turned off (by setting min_cap to 0)."
         elif len(command) == 4:
-            if command[2].rstrip().isdigit() and command[2].rstrip().isdigit():
+            if command[2].rstrip().isdigit() and command[3].rstrip().isdigit():
                 min_cap = int(command[2].rstrip().isdigit())
-                max_cap = int(command[2].rstrip().isdigit())
+                max_cap = int(command[3].rstrip().isdigit())
                 if int(min_cap) < int(max_cap):
                     self.min_cap = int(min_cap)
                     self.max_cap = int(max_cap)
                     return "Change autoscaling min_cap to {min_cap} and max_cap to {max_cap}. queuebot will automatically add slots if AB falls below {min_cap} and remove slots if AB goes above {max_cap}".format(min_cap=self.min_cap, max_cap = self.max_cap)
-        else:
-            return "TypeError: Improper capacity command"
+        return "TypeError: Improper capacity command"
 
     def poll(self, command=[], restore=False) -> str:
         """
