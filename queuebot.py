@@ -71,44 +71,48 @@ class QueueBot:
                     logger.Logger.log_info("Completed job " + each_item)
                     self.finished(each_item)
 
-        if self.last_update + 25 < int(time.time()):
-            time.sleep(2)
-            logger.Logger.log_info("Checking if anything has finished")
-            r = requests.get(
-                "http://dashboard.at.ninjawedding.org/logs/recent?count=1",
-                params={"Accept": "application/json"},
-            )
-            urls = []
-            queuebot_jobs = 0
+        try:
+            if self.last_update + 20 < int(time.time()):
+                time.sleep(2)
+                logger.Logger.log_info("Checking if anything has finished")
+                r = requests.get(
+                    "http://dashboard.at.ninjawedding.org/logs/recent?count=1",
+                    params={"Accept": "application/json"},
+                )
+                urls = []
+                queuebot_jobs = 0
 
-            for each_job in r.json():
-                url = each_job.get("job_data").get("url").rstrip()
-                if "queuebot" == each_job.get("job_data").get("started_by").strip():
-                    queuebot_jobs += 1
+                for each_job in r.json():
+                    url = each_job.get("job_data").get("url").rstrip()
+                    if "queuebot" == each_job.get("job_data").get("started_by").strip():
+                        queuebot_jobs += 1
 
-                if not validators.url(url):
-                    logger.Logger.log_info("Invalid URL detected " + url)
-                elif not each_job.get("job_data").get("finished_at"):
-                    urls.append(url)
-                else:
-                    logger.Logger.log_info("URL is finished " + url)
+                    if not validators.url(url):
+                        logger.Logger.log_info("Invalid URL detected " + url)
+                    elif not each_job.get("job_data").get("finished_at"):
+                        urls.append(url)
+                    else:
+                        logger.Logger.log_info("URL is finished " + url)
 
-            logger.Logger.log_info(str(queuebot_jobs) + " jobs running, " + str(len(urls)) + " jobs total on AB.")
-            logger.Logger.log_info(urls)
-            if queuebot_jobs < self.size:
-                for count, each_item in enumerate(self.buffer):
-                    if not each_item in urls:
-                        logger.Logger.log_info(
-                            "Completed job (detected through omission) " + each_item
-                        )
-                        self.finished(each_item)
-            if len(urls) < self.min_cap:
-                self.size += 1
-            if len(urls) > self.max_cap:
-                if self.size > 0:
-                    self.size -= 1
+                logger.Logger.log_info(str(queuebot_jobs) + " jobs running, " + str(len(urls)) + " jobs total on AB.")
+                logger.Logger.log_info(urls)
+                if queuebot_jobs < self.size:
+                    for count, each_item in enumerate(self.buffer):
+                        if not each_item in urls:
+                            logger.Logger.log_info(
+                                "Completed job (detected through omission) " + each_item
+                            )
+                            self.finished(each_item)
+                if len(urls) < self.min_cap:
+                    self.size += 1
+                if len(urls) > self.max_cap:
+                    if self.size > 0:
+                        self.size -= 1
 
-            self.last_update = int(time.time())
+                self.last_update = int(time.time())
+        except Exception as e:
+            logger.Logger.log_info("Error!")
+            logger.Logger.log_info(e)
 
         if self.state:
             self.save()
