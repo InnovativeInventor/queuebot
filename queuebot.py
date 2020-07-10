@@ -21,6 +21,9 @@ class QueueBot:
         self.last_update = 0  # same as last_checked but for dequeueing
         self.current_state = True
 
+        self.max_cap = 98
+        self.min_cap = 94
+
         self.state = False  # halt or not
         if settings.db_name:
             self.log = dataset.connect(uri=settings.db_uri, db_name=settings.db_name)["queuebot"]
@@ -68,8 +71,8 @@ class QueueBot:
                     logger.Logger.log_info("Completed job " + each_item)
                     self.finished(each_item)
 
-        if self.last_update + 30 < int(time.time()):
-            time.sleep(1)
+        if self.last_update + 25 < int(time.time()):
+            time.sleep(5)
             logger.Logger.log_info("Checking if anything has finished")
             r = requests.get(
                 "http://dashboard.at.ninjawedding.org/logs/recent?count=1",
@@ -82,6 +85,7 @@ class QueueBot:
                 url = each_job.get("job_data").get("url").rstrip()
                 if "queuebot" == each_job.get("job_data").get("started_by").strip():
                     queuebot_jobs += 1
+
                 if not validators.url(url):
                     logger.Logger.log_info("Invalid URL detected " + url)
                 elif not each_job.get("job_data").get("finished_at"):
@@ -89,7 +93,7 @@ class QueueBot:
                 else:
                     logger.Logger.log_info("URL is finished " + url)
 
-            logger.Logger.log_info(str(queuebot_jobs) + " jobs running")
+            logger.Logger.log_info(str(queuebot_jobs) + " jobs running, " + str(len(urls)) + " jobs total on AB.")
             logger.Logger.log_info(urls)
             if queuebot_jobs < self.size:
                 for count, each_item in enumerate(self.buffer):
@@ -98,6 +102,11 @@ class QueueBot:
                             "Completed job (detected through omission) " + each_item
                         )
                         self.finished(each_item)
+            if len(urls) < self.min_cap:
+                self.size += 1
+            if len(urls) > self.max_cap:
+                self.size -= 1
+
             self.last_update = int(time.time())
 
         if self.state:
@@ -233,6 +242,24 @@ class QueueBot:
         else:
             return "TypeError: Please specify a real number"
 
+    def capacity(self, command=[]) -> str:
+        """
+        Change the parameters for the autoscaling capacity feature
+        """
+        if len(command) == 2 and command[2] == "off":
+            self.min_cap = 0
+            return "Automatic scaling up has been turned off (by setting min_cap to 0)."
+        elif len(command) == 4:
+            if command[2].rstrip().isdigit() and command[2].rstrip().isdigit():
+                min_cap = int(command[2].rstrip().isdigit())
+                max_cap = int(command[2].rstrip().isdigit())
+                if int(min_cap) < int(max_cap):
+                    self.min_cap = int(min_cap)
+                    self.max_cap = int(max_cap)
+                    return "Change autoscaling min_cap to {min_cap} and max_cap to {max_cap}. queuebot will automatically add slots if AB falls below {min_cap} and remove slots if AB goes above {max_cap}".format(min_cap=self.min_cap, max_cap = self.max_cap)
+        else:
+            return "TypeError: Improper capacity command"
+
     def poll(self, command=[], restore=False) -> str:
         """
         Polling function
@@ -253,11 +280,15 @@ class QueueBot:
                 elif command[1] == "status":
                     return str(
                         len(self.queue) + len(self.buffer)
-                    ) + " jobs left to go! {slot_size} slots allocated.".format(
-                        slot_size=self.size
+                    ) + " jobs left to go! {slot_size} slots allocated. Min capacity: {min_cap}, max capacity: {max_cap}.".format(
+                        slot_size=self.size,
+                        max_cap = self.max_cap,
+                        min_cap=self.min_cap
                     )
                 elif command[1] == "slots":
                     return str(self.change_slot(command[2].rstrip()))
+                elif command[1] == "capacity":
+                    return str(self.change_capacity(command))
                 else:
                     return self.check_queue(command)
             else:
