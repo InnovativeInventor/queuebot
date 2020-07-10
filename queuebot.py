@@ -242,7 +242,7 @@ class QueueBot:
         else:
             return "TypeError: Please specify a real number"
 
-    def capacity(self, command=[]) -> str:
+    def change_capacity(self, command=[]) -> str:
         """
         Change the parameters for the autoscaling capacity feature
         """
