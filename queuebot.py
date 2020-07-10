@@ -105,7 +105,8 @@ class QueueBot:
             if len(urls) < self.min_cap:
                 self.size += 1
             if len(urls) > self.max_cap:
-                self.size -= 1
+                if self.size > 0:
+                    self.size -= 1
 
             self.last_update = int(time.time())
 
