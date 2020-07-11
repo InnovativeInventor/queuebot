@@ -3,7 +3,7 @@ name = "queuebot"
 version = "0.1.0"
 description = "A smart autoscaling queueing service for archivebot for eventual upload to the Internet Archive's Wayback Machine (WBM). Currently focusing on automatic archival of missing political and governmental twitter accounts. Live on efnet/#archivebot."
 authors = ["InnovativeInventor <root@max.fan>"]
-license = "MIT License"
+license = "GPL"
 
 [tool.poetry.dependencies]
 python = "^3.8"
