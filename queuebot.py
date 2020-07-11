@@ -1,14 +1,14 @@
-import validators
-import logger
 import os
-import mongodb_dataset as dataset
-
 import pickle
+import time
 
 # import queue
 import requests
-import time
+
+import logger
+import mongoset
 import settings
+import validators
 
 
 class QueueBot:
@@ -26,9 +26,9 @@ class QueueBot:
 
         self.state = False  # halt or not
         if settings.db_name:
-            self.log = dataset.connect(uri=settings.db_uri, db_name=settings.db_name)["queuebot"]
+            self.log = mongoset.connect(uri=settings.db_uri, db_name=settings.db_name)["queuebot"]
         else:
-            self.log = dataset.connect(uri=settings.db_uri)["queuebot"]
+            self.log = mongoset.connect(uri=settings.db_uri)["queuebot"]
 
     def fill_buffer(self):
         """

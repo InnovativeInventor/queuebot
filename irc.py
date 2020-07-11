@@ -10,7 +10,7 @@ import threading
 import time
 
 import logger
-import mongodb_dataset as dataset
+import mongoset
 import queuebot
 import settings
 
@@ -33,11 +33,11 @@ class IRC(threading.Thread):
 
 
         if settings.db_name:
-            self.messages = dataset.connect(uri=settings.db_uri, db_name=settings.db_name)["messages"]
-            self.commands = dataset.connect(uri=settings.db_uri, db_name=settings.db_name)["commands"]
+            self.messages = mongoset.connect(uri=settings.db_uri, db_name=settings.db_name)["messages"]
+            self.commands = mongoset.connect(uri=settings.db_uri, db_name=settings.db_name)["commands"]
         else:
-            self.messages = dataset.connect(uri=settings.db_uri)["messages"]
-            self.commands = dataset.connect(uri=settings.db_uri)["commands"]
+            self.messages = mongoset.connect(uri=settings.db_uri)["messages"]
+            self.commands = mongoset.connect(uri=settings.db_uri)["commands"]
 
     def start_pinger(self):
         self.pinger = threading.Thread(target=self.pinger)
