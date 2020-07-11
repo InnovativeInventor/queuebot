@@ -17,6 +17,7 @@ class QueueBot:
 
         self.buffer = []
         self.queue = []
+        self.ab_count = 0
         self.last_checked = 0
         self.last_update = 0  # same as last_checked but for dequeueing
         self.current_state = True
@@ -68,7 +69,8 @@ class QueueBot:
                 "last_updated": self.last_update,
                 "last_checked": self.last_checked,
                 "buffer": self.buffer,
-                "queue": self.queue
+                "queue": self.queue,
+                "ab_count": self.ab_count,
             },
             ["status"],
         )
@@ -121,6 +123,7 @@ class QueueBot:
                     + str(len(urls))
                     + " jobs total on AB."
                 )
+                self.ab_count = len(urls)
                 logger.Logger.log_info(urls)
                 if queuebot_jobs < self.size:
                     for count, each_item in enumerate(self.buffer):
