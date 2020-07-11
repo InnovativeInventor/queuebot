@@ -46,6 +46,7 @@ class QueueBot:
                     self.buffer.append(item)
 
                     logger.Logger.log_info("Filling up buffer " + item)
+                    self.heartbeat()
 
                     return cmd.format(url=item)
                 logger.Logger.log_info("Queue is empty")
@@ -53,6 +54,24 @@ class QueueBot:
                 logger.Logger.log_info("Buffer is full")
         else:
             logger.Logger.log_info("Halted")
+
+    def heartbeat(self):
+        """
+        Updates status
+        """
+        self.log.upsert(
+            {
+                "status": True,
+                "max_cap": self.max_cap,
+                "min_cap": self.min_cap,
+                "slots": self.size,
+                "last_updated": self.last_update,
+                "last_checked": self.last_checked,
+                "buffer": self.buffer,
+                "queue": self.queue
+            },
+            ["status"],
+        )
 
     def check_queue(self, command: list):
         """
@@ -117,18 +136,8 @@ class QueueBot:
                         self.size -= 1
 
                 self.last_update = int(time.time())
+            self.heartbeat()
 
-            self.log.upsert(
-                {
-                    "status": True,
-                    "max_cap": self.max_cap,
-                    "min_cap": self.min_cap,
-                    "slots": self.size,
-                    "last_updated": self.last_update,
-                    "last_checked": self.last_checked,
-                },
-                ["status"],
-            )
         except Exception as e:
             logger.Logger.log_info("Error!")
             logger.Logger.log_info(e)
