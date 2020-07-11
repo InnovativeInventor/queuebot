@@ -216,7 +216,8 @@ class IRC(threading.Thread):
             )
             self.state = True
             self.bot.state = True
-            msg = self.bot.poll(restore=True)
+
+            msg = self.bot.poll(restore=True, command=["queuebot","status"])
             if msg:
                 self.send(string=msg, channel=settings.irc_channel_bot)
 
