@@ -31,10 +31,13 @@ class IRC(threading.Thread):
         self.start_pinger()
         self.bot = bot()
 
-
         if settings.db_name:
-            self.messages = mongoset.connect(uri=settings.db_uri, db_name=settings.db_name)["messages"]
-            self.commands = mongoset.connect(uri=settings.db_uri, db_name=settings.db_name)["commands"]
+            self.messages = mongoset.connect(
+                uri=settings.db_uri, db_name=settings.db_name
+            )["messages"]
+            self.commands = mongoset.connect(
+                uri=settings.db_uri, db_name=settings.db_name
+            )["commands"]
         else:
             self.messages = mongoset.connect(uri=settings.db_uri)["messages"]
             self.commands = mongoset.connect(uri=settings.db_uri)["commands"]
@@ -85,7 +88,7 @@ class IRC(threading.Thread):
             message = "{command} {channel}{string}".format(**locals())
             try:
                 logger.Logger.log_info("IRC - {message}".format(**locals()))
-                self.messages.insert({"msg":message, "sent": True})
+                self.messages.insert({"msg": message, "sent": True})
                 self.server.send("{message}\n".format(**locals()).encode("utf-8"))
             except Exception as exception:
                 logger.Logger.log_info("{exception}".format(**locals()), "WARNING")

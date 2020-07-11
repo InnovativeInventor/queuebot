@@ -26,7 +26,9 @@ class QueueBot:
 
         self.state = False  # halt or not
         if settings.db_name:
-            self.log = mongoset.connect(uri=settings.db_uri, db_name=settings.db_name)["queuebot"]
+            self.log = mongoset.connect(uri=settings.db_uri, db_name=settings.db_name)[
+                "queuebot"
+            ]
         else:
             self.log = mongoset.connect(uri=settings.db_uri)["queuebot"]
 
@@ -94,7 +96,12 @@ class QueueBot:
                     else:
                         logger.Logger.log_info("URL is finished " + url)
 
-                logger.Logger.log_info(str(queuebot_jobs) + " jobs running, " + str(len(urls)) + " jobs total on AB.")
+                logger.Logger.log_info(
+                    str(queuebot_jobs)
+                    + " jobs running, "
+                    + str(len(urls))
+                    + " jobs total on AB."
+                )
                 logger.Logger.log_info(urls)
                 if queuebot_jobs < self.size:
                     for count, each_item in enumerate(self.buffer):
@@ -110,6 +117,18 @@ class QueueBot:
                         self.size -= 1
 
                 self.last_update = int(time.time())
+
+            self.log.upsert(
+                {
+                    "status": True,
+                    "max_cap": self.max_cap,
+                    "min_cap": self.min_cap,
+                    "slots": self.size,
+                    "last_updated": self.last_update,
+                    "last_checked": self.last_checked,
+                },
+                ["status"],
+            )
         except Exception as e:
             logger.Logger.log_info("Error!")
             logger.Logger.log_info(e)
@@ -256,13 +275,17 @@ class QueueBot:
             return "Automatic scaling up has been turned off (by setting min_cap to 0)."
         elif len(command) == 4:
             if command[2].rstrip().isdigit() and command[3].rstrip().isdigit():
-                logger.Logger.log_info("Changing capacity " + command[2] + " " + command[3])
+                logger.Logger.log_info(
+                    "Changing capacity " + command[2] + " " + command[3]
+                )
                 min_cap = int(command[2].rstrip())
                 max_cap = int(command[3].rstrip())
                 if min_cap < max_cap:
                     self.min_cap = min_cap
                     self.max_cap = max_cap
-                    return "Change autoscaling min_cap to {min_cap} and max_cap to {max_cap}. queuebot will automatically add slots if AB falls below {min_cap} and remove slots if AB goes above {max_cap}".format(min_cap=self.min_cap, max_cap = self.max_cap)
+                    return "Change autoscaling min_cap to {min_cap} and max_cap to {max_cap}. queuebot will automatically add slots if AB falls below {min_cap} and remove slots if AB goes above {max_cap}".format(
+                        min_cap=self.min_cap, max_cap=self.max_cap
+                    )
         return "TypeError: Improper capacity command"
 
     def poll(self, command=[], restore=False) -> str:
@@ -286,9 +309,7 @@ class QueueBot:
                     return str(
                         len(self.queue) + len(self.buffer)
                     ) + " jobs left to go! {slot_size} slots allocated. Min capacity: {min_cap}, max capacity: {max_cap}.".format(
-                        slot_size=self.size,
-                        max_cap = self.max_cap,
-                        min_cap=self.min_cap
+                        slot_size=self.size, max_cap=self.max_cap, min_cap=self.min_cap
                     )
                 elif command[1] == "slots":
                     return str(self.change_slot(command[2].rstrip()))
@@ -301,7 +322,12 @@ class QueueBot:
                 if self.nothing_pending():
                     queued_item = self.fill_buffer()
                     if queued_item:
-                        self.log.insert({"item": queued_item.replace("!ao <", "").rstrip(), "finished": False})
+                        self.log.insert(
+                            {
+                                "item": queued_item.replace("!ao <", "").rstrip(),
+                                "finished": False,
+                            }
+                        )
                     return queued_item
             return ""
         else:
