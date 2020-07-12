@@ -51,7 +51,7 @@ class IRC(threading.Thread):
         while True:
             self.send("PING", ":")
             for i in range(24):
-                time.sleep(5)
+                time.sleep(7)
                 if self.state:
                     msg = self.bot.poll()
                     if msg:
