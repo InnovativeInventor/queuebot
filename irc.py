@@ -191,6 +191,10 @@ class IRC(threading.Thread):
             logger.Logger.log_info(
                 "EMERGENCY: {user} has requested I stop".format(user=user)
             )
+            msg = self.bot.poll(restore=True, command=["queuebot","status"])
+            if msg:
+                self.send(string=msg, channel=settings.irc_channel_bot)
+
             self.bot.save()
             self.bot.state = False
             self.state = False
