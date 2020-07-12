@@ -154,7 +154,7 @@ class QueueBot:
         """
         if self.state:
             if len(self.queue) > 0:
-                return self.queue.pop()
+                return self.queue.pop(0)
         else:
             logger.Logger.log_info("Halted")
 
