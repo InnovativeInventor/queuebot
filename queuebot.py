@@ -86,67 +86,67 @@ class QueueBot:
         # if each_item in command:
         # logger.Logger.log_info("Removed from queue " + each_item)
         # self.queued(each_item)
+        if self.buffer:
+            if "finished" in command:
+                for count, each_item in enumerate(self.buffer):
+                    logger.Logger.log_info("Finished job detected " + str(each_item))
+                    if each_item in command:
+                        logger.Logger.log_info("Completed job " + each_item)
+                        self.finished(each_item)
 
-        if "finished" in command:
-            for count, each_item in enumerate(self.buffer):
-                logger.Logger.log_info("Finished job detected " + str(each_item))
-                if each_item in command:
-                    logger.Logger.log_info("Completed job " + each_item)
-                    self.finished(each_item)
+            try:
+                if self.last_update + 20 < int(time.time()):
+                    time.sleep(2)
+                    logger.Logger.log_info("Checking if anything has finished")
+                    r = requests.get(
+                        "http://dashboard.at.ninjawedding.org/logs/recent?count=1",
+                        params={"Accept": "application/json"},
+                    )
+                    urls = []
+                    queuebot_jobs = 0
 
-        try:
-            if self.last_update + 20 < int(time.time()):
-                time.sleep(2)
-                logger.Logger.log_info("Checking if anything has finished")
-                r = requests.get(
-                    "http://dashboard.at.ninjawedding.org/logs/recent?count=1",
-                    params={"Accept": "application/json"},
-                )
-                urls = []
-                queuebot_jobs = 0
+                    for each_job in r.json():
+                        url = each_job.get("job_data").get("url").rstrip()
+                        if "queuebot" == each_job.get("job_data").get("started_by").strip():
+                            queuebot_jobs += 1
 
-                for each_job in r.json():
-                    url = each_job.get("job_data").get("url").rstrip()
-                    if "queuebot" == each_job.get("job_data").get("started_by").strip():
-                        queuebot_jobs += 1
+                        if not validators.url(url):
+                            logger.Logger.log_info("Invalid URL detected " + url)
+                        elif not each_job.get("job_data").get("finished_at"):
+                            urls.append(url)
+                        else:
+                            logger.Logger.log_info("URL is finished " + url)
 
-                    if not validators.url(url):
-                        logger.Logger.log_info("Invalid URL detected " + url)
-                    elif not each_job.get("job_data").get("finished_at"):
-                        urls.append(url)
-                    else:
-                        logger.Logger.log_info("URL is finished " + url)
+                    logger.Logger.log_info(
+                        str(queuebot_jobs)
+                        + " jobs running, "
+                        + str(len(urls))
+                        + " jobs total on AB."
+                    )
+                    self.ab_count = len(urls)
+                    logger.Logger.log_info(urls)
+                    if queuebot_jobs < self.size:
+                        for count, each_item in enumerate(self.buffer):
+                            if not each_item in urls:
+                                logger.Logger.log_info(
+                                    "Completed job (detected through omission) " + each_item
+                                )
+                                self.finished(each_item)
+                    if len(urls) < self.min_cap:
+                        self.size += 1
+                    if len(urls) > self.max_cap:
+                        if self.size > 1:
+                            self.size -= 1
 
-                logger.Logger.log_info(
-                    str(queuebot_jobs)
-                    + " jobs running, "
-                    + str(len(urls))
-                    + " jobs total on AB."
-                )
-                self.ab_count = len(urls)
-                logger.Logger.log_info(urls)
-                if queuebot_jobs < self.size:
-                    for count, each_item in enumerate(self.buffer):
-                        if not each_item in urls:
-                            logger.Logger.log_info(
-                                "Completed job (detected through omission) " + each_item
-                            )
-                            self.finished(each_item)
-                if len(urls) < self.min_cap:
-                    self.size += 1
-                if len(urls) > self.max_cap:
-                    if self.size > 0:
-                        self.size -= 1
+                    self.last_update = int(time.time())
+                self.heartbeat()
 
-                self.last_update = int(time.time())
-            self.heartbeat()
+            except Exception as e:
+                logger.Logger.log_info("Error!")
+                logger.Logger.log_info(e)
 
-        except Exception as e:
-            logger.Logger.log_info("Error!")
-            logger.Logger.log_info(e)
-
-        if self.state:
-            self.save()
+            if self.state:
+                self.save()
 
     def next(self):
         """
@@ -203,7 +203,9 @@ class QueueBot:
         """
         logger.Logger.log_info("Added jobs at " + uri)
         r = requests.get(uri)
-        for count, each_line in enumerate(r.content.decode().split()):
+        for count, each_line in enumerate(r.content.decode().split("\n")):
+            if count == 0 and "Custom:" in each_line:
+                cmd = each_line.rstrip()
             if validators.url(each_line.rstrip()):
                 self.queue.append((each_line.rstrip(), cmd))
         return str(count) + " items added to queue."
@@ -310,12 +312,6 @@ class QueueBot:
 
             if command:
                 if command[1] == "add":
-                    if len(command) == 4:
-                        logger.Logger.log_info(
-                            "Custom command detected " + command[3].rstrip()
-                        )
-                        return self.add(command[2].rstrip(), command[3].rstrip())
-                    else:
                         return self.add(command[2].rstrip())
                 elif command[1] == "status":
                     return str(
