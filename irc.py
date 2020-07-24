@@ -218,6 +218,7 @@ class IRC(threading.Thread):
                 ),
                 channel,
             )
+            self.bot.size = 1
             self.state = True
             self.bot.state = True
 
