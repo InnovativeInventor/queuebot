@@ -108,58 +108,59 @@ class IRC(threading.Thread):
     def poll(self):
         try:
             while True:
-                message = self.server.recv(4096).decode("utf-8")
-                # self.messages.insert({"msg": message, "sent": False})
-                if message.strip().startswith("PING"):
-                    logger.Logger.log_info('Received ping msg: ' + message.rstrip())
-                    message_new = message.split()[-1]
-                    self.send('PONG', '{message_new}'.format(**locals()))
-                # elif "join" in message.rstrip():
-                #     logger.Logger.log_info("Recieved authentication message")
-                elif "You have not registered" in message:
-                    self.identify()
-                    self.send("JOIN", "{channel_bot}".format(channel_bot=self.channel_bot))
+                messages = self.server.recv(4096).decode("utf-8")
+                for each_message in messages.split("\n"):
+                    # self.messages.insert({"msg": message, "sent": False})
+                    if message.strip().startswith("PING"):
+                        logger.Logger.log_info('Received ping msg: ' + message.rstrip())
+                        message_new = message.split()[-1]
+                        self.send('PONG', '{message_new}'.format(**locals()))
+                    # elif "join" in message.rstrip():
+                    #     logger.Logger.log_info("Recieved authentication message")
+                    elif "You have not registered" in message:
+                        self.identify()
+                        self.send("JOIN", "{channel_bot}".format(channel_bot=self.channel_bot))
 
-                if self.state:
-                    msg = self.bot.poll()
-                    if msg:
-                        self.send(string=msg, channel=settings.irc_channel_bot)
+                    if self.state:
+                        msg = self.bot.poll()
+                        if msg:
+                            self.send(string=msg, channel=settings.irc_channel_bot)
 
-                for line in message.splitlines():
-                    logger.Logger.log_info("IRC - {line}".format(**locals()))
-                    if len(line.split()) > 4:
-                        command = line.split()[3:]
-                        user = line.split("!")[0].replace(":", "")
-                        msg_type = line.split()[1]
-                        channel = line.split()[2]
+                    for line in message.splitlines():
+                        logger.Logger.log_info("IRC - {line}".format(**locals()))
+                        if len(line.split()) > 4:
+                            command = line.split()[3:]
+                            user = line.split("!")[0].replace(":", "")
+                            msg_type = line.split()[1]
+                            channel = line.split()[2]
 
-                        if (
-                            self.check_admin(user)
-                            and command[0].replace(":", "") == settings.irc_nick
-                        ):
-                            # self.commands.insert(
-                            #     {"command": command, "user": user, "channel": channel}
-                            # )
-                            # self.command(command, user, channel)
-                            logger.Logger.log_info(
-                                "COMMAND - Received in channel {channel} - {command}".format(
-                                    channel=channel, command=" ".join(command)
-                                )
-                            )
-
-                            # Command poll
-                            if self.state:
-                                msg = self.bot.poll(command)
-                                if msg:
-                                    self.send(
-                                        string=msg, channel=settings.irc_channel_bot
+                            if (
+                                self.check_admin(user)
+                                and command[0].replace(":", "") == settings.irc_nick
+                            ):
+                                # self.commands.insert(
+                                #     {"command": command, "user": user, "channel": channel}
+                                # )
+                                # self.command(command, user, channel)
+                                logger.Logger.log_info(
+                                    "COMMAND - Received in channel {channel} - {command}".format(
+                                        channel=channel, command=" ".join(command)
                                     )
+                                )
 
-                        if (command[1] == "stop" or command[1] == "help" or command[1] == "start") and command[
-                            0
-                        ].replace(":", "") == settings.irc_nick:
-                            logger.Logger.log_info("Command detected")
-                            self.command(command, user, channel)
+                                # Command poll
+                                if self.state:
+                                    msg = self.bot.poll(command)
+                                    if msg:
+                                        self.send(
+                                            string=msg, channel=settings.irc_channel_bot
+                                        )
+
+                            if (command[1] == "stop" or command[1] == "help" or command[1] == "start") and command[
+                                0
+                            ].replace(":", "") == settings.irc_nick:
+                                logger.Logger.log_info("Command detected")
+                                self.command(command, user, channel)
 
                 if self.state:
                     msg = self.bot.poll()
