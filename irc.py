@@ -95,7 +95,7 @@ class IRC(threading.Thread):
             try:
                 logger.Logger.log_info("IRC - {message}".format(**locals()))
                 # self.messages.insert({"msg": message, "sent": True})
-                self.server.send(f"{message}\n".encode("utf-8"))
+                self.server.send(f"{message}\r\n".encode("utf-8"))
             except Exception as exception:
                 logger.Logger.log_info("{exception}".format(**locals()), "WARNING")
                 # self.connect()
@@ -107,9 +107,14 @@ class IRC(threading.Thread):
 
     def poll(self):
         try:
+            prev_messages = []
             while True:
                 messages = self.server.recv(4096).decode("utf-8")
-                for each_message in messages.split("\n"):
+                prev_messages.extend(messages.split("\r\n"))
+                current_messages = prev_messages
+
+                for message in current_messages[:-1]:
+                    del prev_messages[0]
                     # self.messages.insert({"msg": message, "sent": False})
                     if message.strip().startswith("PING"):
                         logger.Logger.log_info('Received ping msg: ' + message.rstrip())
