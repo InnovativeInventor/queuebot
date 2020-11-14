@@ -5,12 +5,13 @@
 import datetime
 import re
 import socket
+import ssl
 import sys
 import threading
 import time
 
 import logger
-import mongoset
+# import mongoset
 import queuebot
 import settings
 
@@ -19,6 +20,8 @@ class IRC(threading.Thread):
     def __init__(self, bot=queuebot.QueueBot):
         threading.Thread.__init__(self)
         self.channel_bot = settings.irc_channel_bot
+        self.context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        # ssl.SSLContext.verify_mode = ssl.CERT_NONE
         self.nick = settings.irc_nick
         self.server_name = settings.irc_server_name
         self.server_port = settings.irc_server_port
@@ -31,16 +34,16 @@ class IRC(threading.Thread):
         self.start_pinger()
         self.bot = bot()
 
-        if settings.db_name:
-            self.messages = mongoset.connect(
-                uri=settings.db_uri, db_name=settings.db_name
-            )["messages"]
-            self.commands = mongoset.connect(
-                uri=settings.db_uri, db_name=settings.db_name
-            )["commands"]
-        else:
-            self.messages = mongoset.connect(uri=settings.db_uri)["messages"]
-            self.commands = mongoset.connect(uri=settings.db_uri)["commands"]
+        # if settings.db_name:
+            # self.messages = mongoset.connect(
+            #     uri=settings.db_uri, db_name=settings.db_name
+            # )["messages"]
+            # self.commands = mongoset.connect(
+            #     uri=settings.db_uri, db_name=settings.db_name
+            # )["commands"]
+        # else:
+        #     self.messages = mongoset.connect(uri=settings.db_uri)["messages"]
+        #     self.commands = mongoset.connect(uri=settings.db_uri)["commands"]
 
     def start_pinger(self):
         self.pinger = threading.Thread(target=self.pinger)
@@ -50,7 +53,7 @@ class IRC(threading.Thread):
     def pinger(self):
         while True:
             self.send("PING", ":")
-            for i in range(24):
+            for i in range(30):
                 time.sleep(7)
                 if self.state:
                     msg = self.bot.poll()
@@ -65,31 +68,34 @@ class IRC(threading.Thread):
         if self.server:
             self.server.close()
         logger.Logger.log_info("Connecting to IRC server " + self.server_name)
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server = self.context.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM), server_hostname = self.server_name)
         self.server.connect((self.server_name, self.server_port))
-        time.sleep(0.5)
+        time.sleep(1)
         self.send(
             "USER",
             "{nick} {nick} {nick} :I am a bot; "
             "https://github.com/InnovativeInventor/queuebot.".format(nick=self.nick),
         )
-        time.sleep(0.5)
+        # time.sleep(1)
         self.send("NICK", "{nick}".format(nick=self.nick))
-        time.sleep(0.5)
-        self.send("JOIN", "{channel_bot}".format(channel_bot=self.channel_bot))
+        time.sleep(1)
+        self.identify()
         #        self.send('PRIVMSG', 'Version {version}.'
         #                  .format(version=settings.version), self.channel_bot)
         logger.Logger.log_info("Connected to " + self.server_name + " as " + self.nick)
+
+    def identify(self):
+        self.send(string=f"identify {settings.irc_password}", channel="NickServ")
 
     def send(self, command="PRIVMSG", string="", channel=""):
         if string:
             if channel != "":
                 channel += " :"
-            message = "{command} {channel}{string}".format(**locals())
+            message = str(f"{command} {channel}{string}")
             try:
                 logger.Logger.log_info("IRC - {message}".format(**locals()))
-                self.messages.insert({"msg": message, "sent": True})
-                self.server.send("{message}\n".format(**locals()).encode("utf-8"))
+                # self.messages.insert({"msg": message, "sent": True})
+                self.server.send(f"{message}\n".encode("utf-8"))
             except Exception as exception:
                 logger.Logger.log_info("{exception}".format(**locals()), "WARNING")
                 # self.connect()
@@ -102,13 +108,23 @@ class IRC(threading.Thread):
     def poll(self):
         try:
             while True:
+                message = self.server.recv(4096).decode("utf-8")
+                # self.messages.insert({"msg": message, "sent": False})
+                if message.strip().startswith("PING"):
+                    logger.Logger.log_info('Received ping msg: ' + message.rstrip())
+                    message_new = message.split()[-1]
+                    self.send('PONG', '{message_new}'.format(**locals()))
+                # elif "join" in message.rstrip():
+                #     logger.Logger.log_info("Recieved authentication message")
+                elif "You have not registered" in message:
+                    self.identify()
+                    self.send("JOIN", "{channel_bot}".format(channel_bot=self.channel_bot))
+
                 if self.state:
                     msg = self.bot.poll()
                     if msg:
                         self.send(string=msg, channel=settings.irc_channel_bot)
 
-                message = self.server.recv(4096).decode("utf-8")
-                self.messages.insert({"msg": message, "sent": False})
                 for line in message.splitlines():
                     logger.Logger.log_info("IRC - {line}".format(**locals()))
                     if len(line.split()) > 4:
@@ -121,10 +137,10 @@ class IRC(threading.Thread):
                             self.check_admin(user)
                             and command[0].replace(":", "") == settings.irc_nick
                         ):
-                            self.commands.insert(
-                                {"command": command, "user": user, "channel": channel}
-                            )
-                            self.command(command, user, channel)
+                            # self.commands.insert(
+                            #     {"command": command, "user": user, "channel": channel}
+                            # )
+                            # self.command(command, user, channel)
                             logger.Logger.log_info(
                                 "COMMAND - Received in channel {channel} - {command}".format(
                                     channel=channel, command=" ".join(command)
@@ -139,9 +155,10 @@ class IRC(threading.Thread):
                                         string=msg, channel=settings.irc_channel_bot
                                     )
 
-                        elif (command[1] == "stop" or command[1] == "help") and command[
+                        if (command[1] == "stop" or command[1] == "help" or command[1] == "start") and command[
                             0
                         ].replace(":", "") == settings.irc_nick:
+                            logger.Logger.log_info("Command detected")
                             self.command(command, user, channel)
 
                 if self.state:

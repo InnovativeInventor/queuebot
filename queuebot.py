@@ -4,11 +4,11 @@ import time
 
 # import queue
 import requests
+import validators
 
 import logger
-import mongoset
+# import mongoset
 import settings
-import validators
 
 
 class QueueBot:
@@ -25,13 +25,13 @@ class QueueBot:
         self.max_cap = 98
         self.min_cap = 94
 
-        self.state = False  # halt or not
-        if settings.db_name:
-            self.log = mongoset.connect(uri=settings.db_uri, db_name=settings.db_name)[
-                "queuebot"
-            ]
-        else:
-            self.log = mongoset.connect(uri=settings.db_uri)["queuebot"]
+        self.state = True  # halt or not
+        # if settings.db_name:
+            # self.log = mongoset.connect(uri=settings.db_uri, db_name=settings.db_name)[
+            #     "queuebot"
+            # ]
+        # else:
+            # self.log = mongoset.connect(uri=settings.db_uri)["queuebot"]
 
     def fill_buffer(self):
         """
@@ -60,20 +60,21 @@ class QueueBot:
         """
         Updates status
         """
-        self.log.upsert(
-            {
-                "status": True,
-                "max_cap": self.max_cap,
-                "min_cap": self.min_cap,
-                "slots": self.size,
-                "last_updated": self.last_update,
-                "last_checked": self.last_checked,
-                "buffer": self.buffer,
-                "queue": self.queue,
-                "ab_count": self.ab_count,
-            },
-            ["status"],
-        )
+        pass
+        # self.log.upsert(
+        #     {
+        #         "status": True,
+        #         "max_cap": self.max_cap,
+        #         "min_cap": self.min_cap,
+        #         "slots": self.size,
+        #         "last_updated": self.last_update,
+        #         "last_checked": self.last_checked,
+        #         "buffer": self.buffer,
+        #         "queue": self.queue,
+        #         "ab_count": self.ab_count,
+        #     },
+        #     ["status"],
+        # )
 
     def check_queue(self, command: list):
         """
@@ -154,6 +155,7 @@ class QueueBot:
         """
         if self.state:
             if len(self.queue) > 0:
+                time.sleep(1)
                 return self.queue.pop(0)
         else:
             logger.Logger.log_info("Halted")
@@ -189,7 +191,7 @@ class QueueBot:
         Removes from buffer, the pr
         """
         if self.state:
-            self.log.insert({"item": item, "finished": True})
+            # self.log.insert({"item": item, "finished": True})
             self.buffer.remove(item)
         else:
             logger.Logger.log_info("Halted")
@@ -242,10 +244,16 @@ class QueueBot:
             if (
                 self.last_checked + self.last_update != 0
             ):  # don't want this to run at first
-                with open("state.pickle", "wb") as f:
-                    logger.Logger.log_info("Saved queuebot state")
-                    state = (self.buffer, self.queue)
-                    pickle.dump(state, f)
+                try:
+                    with open("state.pickle", "wb") as f:
+                        logger.Logger.log_info("Saved queuebot state")
+                        state = (self.buffer, self.queue)
+                        pickle.dump(state, f)
+                except KeyboardInterrupt: # retry
+                    with open("state.pickle", "wb") as f:
+                        logger.Logger.log_info("Saved queuebot state")
+                        state = (self.buffer, self.queue)
+                        pickle.dump(state, f)
         else:
             logger.Logger.log_info("Halted")
 
@@ -329,13 +337,14 @@ class QueueBot:
                 self.check_queue(command)
                 if self.nothing_pending():
                     queued_item = self.fill_buffer()
-                    if queued_item:
-                        self.log.insert(
-                            {
-                                "item": queued_item.replace("!ao <", "").rstrip(),
-                                "finished": False,
-                            }
-                        )
+                    # if queued_item:
+                        # self.log.insert(
+                        #     {
+                        #         "item": queued_item.replace("!ao <", "").rstrip(),
+                        #         "finished": False,
+                        #     }
+                        # )
+                    time.sleep(3)
                     return queued_item
             return ""
         else:
